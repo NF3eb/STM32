@@ -19,12 +19,10 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "gpio.h"
-#include "stm32f1xx_hal.h"
-#include "stm32f1xx_hal_gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "led.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,7 +43,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+int state=STATE_R0G0B0;
+int mode=MODE_MANUAL;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -99,6 +98,19 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    switch (mode) {
+      case MODE_ROLLING:{
+        state=led_control_rolling(state);
+        HAL_Delay(500);
+        break;
+      }
+      case MODE_MANUAL:{
+        led_control_manual();
+        break;
+      }
+      default:{
+      }
+    }
   }
   /* USER CODE END 3 */
 }
