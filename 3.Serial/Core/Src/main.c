@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "dma.h"
+#include "stm32f1xx_hal_dma.h"
 #include "stm32f1xx_hal_uart.h"
 #include "usart.h"
 #include "gpio.h"
@@ -95,6 +96,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   char *message="Hello world!";
   HAL_UART_Transmit(&huart2, (uint8_t*)message, strlen(message), 100);//Hello world!
+  __HAL_DMA_DISABLE_IT(&hdma_usart2_rx, DMA_IT_HT);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -106,7 +108,8 @@ int main(void)
     /* USER CODE BEGIN 3 */
     // serial_Polling();
     // serial_IT();
-    serial_DMA();
+    // serial_DMA();
+    // serial_idle();
   }
   /* USER CODE END 3 */
 }
