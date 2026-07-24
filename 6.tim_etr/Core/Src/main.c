@@ -27,6 +27,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "oled.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 /* USER CODE END Includes */
@@ -60,6 +61,34 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
+/*Reset Mode*/
+// static const char *message_reload_auto="Reloaded(Auto).\n";
+// static const char *message_reload_manual="Reloaded(Manual).\n";
+// void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+//   if(htim==&htim2){
+//     if(__HAL_TIM_GET_FLAG(htim,TIM_FLAG_TRIGGER)==SET){
+//       __HAL_TIM_CLEAR_FLAG(htim, TIM_FLAG_TRIGGER);
+//       HAL_UART_Transmit_IT(&huart2, (uint8_t*)message_reload_manual,strlen(message_reload_manual));
+//       return;
+//     }else{
+//       HAL_UART_Transmit_IT(&huart2, (uint8_t*)message_reload_auto,strlen(message_reload_auto));
+//       return;
+//     }
+//   }
+// }
+
+
+/* Gated Mode/Trigger Mode */
+// static const char *message_reload_auto="Reloaded(Auto).\n";
+// void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+//   if(htim==&htim2){
+//     HAL_UART_Transmit_IT(&huart2, (uint8_t*)message_reload_auto,strlen(message_reload_auto));
+//     return;
+//   }
+// }
+
 
 /* USER CODE END 0 */
 
@@ -98,9 +127,10 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start(&htim2);
+  // HAL_TIM_Base_Start(&htim2);
+  HAL_TIM_Base_Start_IT(&htim2);
   int counter=0,counter_temp=-1;
-  char message[20]="";
+  char sendBuffer[20]="";
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -110,16 +140,53 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+    /*Counter*/
     counter=__HAL_TIM_GET_COUNTER(&htim2);
     if(counter!=counter_temp){
       OLED_NewFrame();
-      sprintf(message, "counter:%d",counter);
-      OLED_PrintString(0, 0, message, &font16x16, OLED_COLOR_NORMAL);
+      sprintf(sendBuffer, "counter:%d",counter);
+      OLED_PrintString(0, 0, sendBuffer, &font16x16, OLED_COLOR_NORMAL);
       OLED_ShowFrame();
       counter_temp=counter;
-      sprintf(message, "counter:%d",counter);
-      HAL_UART_Transmit_IT(&huart2, message, strlen(message));
+      sprintf(sendBuffer, "counter:%d",counter);
+      HAL_UART_Transmit_IT(&huart2, (uint8_t*)sendBuffer, strlen(sendBuffer));
     }
+
+
+
+    /*Reset Mode*/
+    // counter=__HAL_TIM_GET_COUNTER(&htim2);
+    // sprintf(sendBuffer, "counter:%d",counter);
+    // HAL_UART_Transmit_IT(&huart2, (uint8_t*)sendBuffer, strlen(sendBuffer));
+    // HAL_Delay(500);
+
+
+
+    /* Gated Mode */
+    // const char *message_gate="Gated Mode triggered.\n";
+    // if(__HAL_TIM_GET_FLAG(&htim2,TIM_FLAG_TRIGGER)==1){
+    //   __HAL_TIM_CLEAR_FLAG(&htim2,TIM_FLAG_TRIGGER);
+    //   HAL_UART_Transmit_IT(&huart2, (uint8_t*)message_gate, strlen(message_gate));
+    // }
+    // counter=__HAL_TIM_GET_COUNTER(&htim2);
+    // sprintf(sendBuffer, "counter:%d",counter);
+    // HAL_UART_Transmit_IT(&huart2, (uint8_t*)sendBuffer, strlen(sendBuffer));
+    // HAL_Delay(500);
+
+
+
+    /* Trigger Mode */
+    // const char *message_trigger="Trigger Mode triggered.\n";
+    // if(__HAL_TIM_GET_FLAG(&htim2,TIM_FLAG_TRIGGER)==1){
+    //   __HAL_TIM_CLEAR_FLAG(&htim2,TIM_FLAG_TRIGGER);
+    //   HAL_UART_Transmit_IT(&huart2, (uint8_t*)message_trigger, strlen(message_trigger));
+    // }
+    // counter=__HAL_TIM_GET_COUNTER(&htim2);
+    // sprintf(sendBuffer, "counter:%d",counter);
+    // HAL_UART_Transmit_IT(&huart2, (uint8_t*)sendBuffer, strlen(sendBuffer));
+    // HAL_Delay(500);
+
   }
   /* USER CODE END 3 */
 }
