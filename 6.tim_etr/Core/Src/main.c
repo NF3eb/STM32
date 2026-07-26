@@ -109,8 +109,6 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  HAL_Delay(20);
-  OLED_Init();
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -127,6 +125,8 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
+  HAL_Delay(20);
+  OLED_Init();
   // HAL_TIM_Base_Start(&htim2);
   HAL_TIM_Base_Start_IT(&htim2);
   int counter=0,counter_temp=-1;
