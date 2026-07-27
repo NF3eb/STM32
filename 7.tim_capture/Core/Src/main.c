@@ -32,6 +32,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -41,6 +42,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define SPEED 0.34
 
 /* USER CODE END PD */
 
@@ -63,6 +65,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+bool is_mesuring = false;
 int up_edge_timestamp=0,down_edge_timestamp=0;
 struct{
   int integer;
@@ -75,8 +78,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
   if((htim==&htim1) && ((htim->Channel)==HAL_TIM_ACTIVE_CHANNEL_4)){
     up_edge_timestamp=HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_3);
     down_edge_timestamp=HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_4);
-    distance.integer=(int)(((down_edge_timestamp-up_edge_timestamp)*0.34)/2.0);
-    distance.floating=(int)(((((down_edge_timestamp-up_edge_timestamp)*0.34)/2.0)-distance.integer)*100);//保留两位小数
+    distance.integer=(int)(((down_edge_timestamp-up_edge_timestamp)*SPEED)/2.0);
+    distance.floating=(int)(((((down_edge_timestamp-up_edge_timestamp)*SPEED)/2.0)-distance.integer)*100);//保留两位小数
+    is_mesuring=false;
     return;
   }
 }
@@ -136,16 +140,20 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_GPIO_WritePin(Trigger_GPIO_Port, Trigger_Pin, GPIO_PIN_SET);
-    HAL_Delay(1);
-    HAL_GPIO_WritePin(Trigger_GPIO_Port, Trigger_Pin, GPIO_PIN_RESET);
-    __HAL_TIM_SET_COUNTER(&htim1, 0);
-    HAL_Delay(20); 
+    if (is_mesuring==false)
+    {
+      HAL_GPIO_WritePin(Trigger_GPIO_Port, Trigger_Pin, GPIO_PIN_SET);
+      HAL_Delay(1);
+      HAL_GPIO_WritePin(Trigger_GPIO_Port, Trigger_Pin, GPIO_PIN_RESET);
+      __HAL_TIM_SET_COUNTER(&htim1, 0);
+      is_mesuring=true;
+    }
 
     OLED_NewFrame();
     sprintf(sendBuffer,"distance:%d.%d",distance.integer,distance.floating);
     OLED_PrintString(0, 0, sendBuffer, &font16x16, OLED_COLOR_NORMAL);
     OLED_ShowFrame();
+
   }
   /* USER CODE END 3 */
 }
