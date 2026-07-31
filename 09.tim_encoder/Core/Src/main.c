@@ -19,9 +19,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "i2c.h"
-#include "stm32f1xx_hal.h"
-#include "stm32f1xx_hal_gpio.h"
-#include "stm32f1xx_hal_tim.h"
 #include "tim.h"
 #include "gpio.h"
 
@@ -53,7 +50,9 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+unsigned short int counter=50,counter_temp=65535;
+unsigned short int channel_index=CHANNEL_BLUE;
+uint32_t channels[3]={TIM_CHANNEL_1,TIM_CHANNEL_2,TIM_CHANNEL_3};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -103,15 +102,11 @@ int main(void)
   HAL_Delay(20);
   OLED_Init();
 
-  unsigned short int counter=50,counter_temp=65535;
   char message[20]="";
-  unsigned short int channel_index=CHANNEL_BLUE;
-  uint32_t channels[3]={TIM_CHANNEL_1,TIM_CHANNEL_2,TIM_CHANNEL_3};
   HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
   HAL_TIM_PWM_Start(&htim3, channels[channel_index]);
   __HAL_TIM_SET_COUNTER(&htim1, 50);
   __HAL_TIM_SET_COMPARE(&htim3, channels[channel_index], 50);
-  bool is_switched=false;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -135,31 +130,11 @@ int main(void)
       }
       if(flag==false){
         counter_temp=counter;
-
         OLED_NewFrame();
         sprintf(message,"counter:%d",counter);
         OLED_PrintString(0, 0, message, &font16x16, OLED_COLOR_NORMAL);
         OLED_ShowFrame();
-
         __HAL_TIM_SET_COMPARE(&htim3, channels[channel_index], counter);
-      }
-    }
-    if(HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin)==GPIO_PIN_RESET){
-      HAL_Delay(10);
-      if(HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin)==GPIO_PIN_RESET){
-        if(is_switched==false){
-          HAL_TIM_PWM_Stop(&htim3, channels[channel_index]);
-          channel_index=(channel_index+1)%3;
-          HAL_TIM_PWM_Start(&htim3, channels[channel_index]);
-          __HAL_TIM_SET_COMPARE(&htim3, channels[channel_index], counter);
-          is_switched=true;
-        }
-      }
-      if(HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin)==GPIO_PIN_SET){
-        HAL_Delay(10);
-        if(HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin)==GPIO_PIN_SET){
-          is_switched=false;
-        }
       }
     }
   }
