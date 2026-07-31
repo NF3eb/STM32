@@ -37,6 +37,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define UNSIGNED_SHORT_MAX 65535
+#define INITIAL_BRIGHTNESS 50
 #define CHANNEL_RED 2
 #define CHANNEL_GREEN 1
 #define CHANNEL_BLUE 0
@@ -50,7 +52,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-unsigned short int counter=50,counter_temp=65535;
+unsigned short int counter=INITIAL_BRIGHTNESS,counter_temp=UNSIGNED_SHORT_MAX;
 unsigned short int channel_index=CHANNEL_BLUE;
 uint32_t channels[3]={TIM_CHANNEL_1,TIM_CHANNEL_2,TIM_CHANNEL_3};
 /* USER CODE END PV */
@@ -102,11 +104,10 @@ int main(void)
   HAL_Delay(20);
   OLED_Init();
 
-  char message[20]="";
   HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
   HAL_TIM_PWM_Start(&htim3, channels[channel_index]);
-  __HAL_TIM_SET_COUNTER(&htim1, 50);
-  __HAL_TIM_SET_COMPARE(&htim3, channels[channel_index], 50);
+  __HAL_TIM_SET_COUNTER(&htim1, INITIAL_BRIGHTNESS);
+  __HAL_TIM_SET_COMPARE(&htim3, channels[channel_index], INITIAL_BRIGHTNESS);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -119,11 +120,11 @@ int main(void)
     counter=__HAL_TIM_GET_COUNTER(&htim1);
     if(counter_temp!=counter){
       bool flag=false;
-      if(counter>=101){
-        if(counter_temp<=50){
+      if(counter>=101){//如果counter超过0-100：
+        if(counter>=(UNSIGNED_SHORT_MAX+1)/2){//counter值较大，说明是从0减小
           __HAL_TIM_SET_COUNTER(&htim1, 0);
         }
-        else if(counter_temp>50){
+        else if(counter<(UNSIGNED_SHORT_MAX+1)/2){//counter值较小，说明是从100增大
           __HAL_TIM_SET_COUNTER(&htim1, 100);
         }
         flag=true;
@@ -131,10 +132,11 @@ int main(void)
       if(flag==false){
         counter_temp=counter;
         OLED_NewFrame();
+        char message[20]="";
         sprintf(message,"counter:%d",counter);
         OLED_PrintString(0, 0, message, &font16x16, OLED_COLOR_NORMAL);
         OLED_ShowFrame();
-        __HAL_TIM_SET_COMPARE(&htim3, channels[channel_index], counter);
+        __HAL_TIM_SET_COMPARE(&htim3, channels[channel_index], counter);//重设占空比
       }
     }
   }
