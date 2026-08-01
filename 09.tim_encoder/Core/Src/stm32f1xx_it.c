@@ -42,9 +42,9 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-extern unsigned short int channel_index;
+extern uint8_t brightness;
+extern uint8_t channel_index;
 extern uint32_t channels[3];
-extern unsigned short int counter;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -213,7 +213,7 @@ void EXTI15_10_IRQHandler(void)
       HAL_TIM_PWM_Stop(&htim3, channels[channel_index]);
       channel_index=(channel_index+1)%3;
       HAL_TIM_PWM_Start(&htim3, channels[channel_index]);
-      __HAL_TIM_SET_COMPARE(&htim3, channels[channel_index], counter);
+      __HAL_TIM_SET_COMPARE(&htim3, channels[channel_index], brightness);
     }
   }
   /* USER CODE END EXTI15_10_IRQn 0 */

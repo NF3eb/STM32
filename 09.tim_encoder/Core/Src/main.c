@@ -19,6 +19,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "i2c.h"
+#include "stm32f1xx_hal_dma.h"
+#include "stm32f1xx_hal_tim.h"
 #include "tim.h"
 #include "gpio.h"
 
@@ -37,8 +39,15 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define UNSIGNED_SHORT_MAX 65535
-#define INITIAL_BRIGHTNESS 50
+#define BASE 32767  //使计数器以32767为原点，防止计数器从0减一到65535
+#define INITIAL_BRIGHTNESS 50-BRIGHTNESS_STEP //初始数据和实际的INITIAL_BRIGHTNESS相差BRIGHTNESS_STEP，使程序开始进行时屏幕上显示出的信息是实际的INITIAL_BRIGHTNESS
+#define INITIAL_DUTY 150-DUTY_STEP //初始数据和实际的INITIAL_DUTY相差DUTY_STEP，使程序开始进行时屏幕上显示出的信息是实际的INITIAL_BRIGHTNESS
+#define MIN_BRIGHTNESS 0
+#define MAX_BRIGHTNESS 255
+#define MIN_DUTY 50
+#define MAX_DUTY 250
+#define BRIGHTNESS_STEP 1 //每个编码器脉冲时，brightness增加多少
+#define DUTY_STEP -1*20 //每个编码器脉冲时，duty增加多少
 #define CHANNEL_RED 2
 #define CHANNEL_GREEN 1
 #define CHANNEL_BLUE 0
@@ -52,8 +61,10 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-unsigned short int counter=INITIAL_BRIGHTNESS,counter_temp=UNSIGNED_SHORT_MAX;
-unsigned short int channel_index=CHANNEL_BLUE;
+uint16_t counter=0;
+uint8_t duty=INITIAL_DUTY;//占空比转换：counter每加1，duty-=20
+uint8_t brightness=INITIAL_BRIGHTNESS;//亮度转换：counter-BASE+50
+uint8_t channel_index=CHANNEL_BLUE;
 uint32_t channels[3]={TIM_CHANNEL_1,TIM_CHANNEL_2,TIM_CHANNEL_3};
 /* USER CODE END PV */
 
@@ -100,14 +111,17 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM1_Init();
   MX_TIM3_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
   HAL_Delay(20);
   OLED_Init();
 
   HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
   HAL_TIM_PWM_Start(&htim3, channels[channel_index]);
-  __HAL_TIM_SET_COUNTER(&htim1, INITIAL_BRIGHTNESS);
-  __HAL_TIM_SET_COMPARE(&htim3, channels[channel_index], INITIAL_BRIGHTNESS);
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+  __HAL_TIM_SET_COUNTER(&htim1, BASE+1);//初始数据和BASE相差1，用于触发更新，使程序开始进行时屏幕上就显示出信息
+  __HAL_TIM_SET_COMPARE(&htim3, channels[channel_index], brightness);
+  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, duty);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -117,27 +131,46 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    counter=__HAL_TIM_GET_COUNTER(&htim1);
-    if(counter_temp!=counter){
-      bool flag=false;
-      if(counter>=101){//如果counter超过0-100：
-        if(counter>=(UNSIGNED_SHORT_MAX+1)/2){//counter值较大，说明是从0减小
-          __HAL_TIM_SET_COUNTER(&htim1, 0);
-        }
-        else if(counter<(UNSIGNED_SHORT_MAX+1)/2){//counter值较小，说明是从100增大
-          __HAL_TIM_SET_COUNTER(&htim1, 100);
-        }
-        flag=true;
+    uint16_t counter=__HAL_TIM_GET_COUNTER(&htim1);
+    int16_t diff=(int16_t)(counter-BASE);
+    if(diff){//计数器值产生变化时：
+      //设置duty
+      int16_t newduty=duty+DUTY_STEP*diff;
+      if((newduty>=MIN_DUTY) && (newduty<=MAX_DUTY)){//若newduty还在MIN_DUTY(50)到MAX_DUTY(250)之间，则直接更改
+        duty+=DUTY_STEP*diff;
       }
-      if(flag==false){
-        counter_temp=counter;
-        OLED_NewFrame();
-        char message[20]="";
-        sprintf(message,"counter:%d",counter);
-        OLED_PrintString(0, 0, message, &font16x16, OLED_COLOR_NORMAL);
-        OLED_ShowFrame();
-        __HAL_TIM_SET_COMPARE(&htim3, channels[channel_index], counter);//重设占空比
+      else if(newduty<MIN_DUTY){//若newduty已经超出了MIN_DUTY(50)的范围，说明已经达到下限，则将其设为MIN_DUTY(50)
+        duty=MIN_DUTY;
       }
+      else if(newduty>MAX_DUTY){//若newduty已经超出了MAX_DUTY(250)的范围，说明已经达到下限，则将其设为MAX_DUTY(250)
+        duty=MAX_DUTY;
+      }
+      __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3,duty);
+
+      //设置brightness
+      int16_t newbrightness=brightness+BRIGHTNESS_STEP*diff;
+      if((newbrightness>=0) && (newbrightness<=255)){//若newbrightness还在MIN_BRIGHTNESS(0)到MAX_BRIGHTNESS(255)之间，则直接更改
+        brightness+=BRIGHTNESS_STEP*diff;
+      }
+      else if(newbrightness<MIN_BRIGHTNESS){//若newbrightness已经超出了MIN_BRIGHTNESS(0)的范围，说明已经达到下限，则将其设为MIN_BRIGHTNESS(0)
+        brightness=MIN_BRIGHTNESS;
+      }
+      else if(newbrightness>MAX_BRIGHTNESS){//若newbrightness已经超出了MAX_BRIGHTNESS(255)的范围，说明已经达到下限，则将其设为MAX_BRIGHTNESS(255)
+        brightness=MAX_BRIGHTNESS;
+      }
+      __HAL_TIM_SET_COMPARE(&htim3, channels[channel_index],brightness);
+
+      //重新锚定计数器为BASE(32767)，防止计数器越界
+      __HAL_TIM_SET_COUNTER(&htim1, BASE);
+
+      //OLED屏幕显示
+      OLED_NewFrame();
+      char message[20]="";
+      sprintf(message, "brightness:%d",brightness);
+      OLED_PrintString(0, 0, message, &font16x16, OLED_COLOR_NORMAL);
+      sprintf(message, "duty:%d(%d.%d%%)",duty,(int)(2.5+(((float)duty-MIN_DUTY)/(MAX_DUTY-MIN_DUTY)*(12.5-2.5))),(int)(10*(2.5+(((float)duty-MIN_DUTY)/(MAX_DUTY-MIN_DUTY)*(12.5-2.5))))%10);//50-250 -> 2.5-12.5
+      OLED_PrintString(0, 16, message, &font16x16, OLED_COLOR_NORMAL);
+      OLED_ShowFrame();
     }
   }
   /* USER CODE END 3 */
