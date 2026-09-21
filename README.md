@@ -11,3 +11,4 @@
 - 07.tim_capture：[定时器：输入捕获模式](https://nf3eb.github.io/posts/stm32/stm32-08/)
 - 08.tim_pwm：[定时器：PWM模式](https://nf3eb.github.io/posts/stm32/stm32-09/)
 - 09.tim_encoder：[定时器：编码器模式](https://nf3eb.github.io/posts/stm32/stm32-10/)
+- 10.motor[定时器：电机控制]()
