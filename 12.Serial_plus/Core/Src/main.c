@@ -48,7 +48,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint8_t data[10];
+uint8_t rxChunk[10];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -61,8 +61,8 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
   if(huart==&huart2){
-    commandWrite(data, Size);
-    HAL_UARTEx_ReceiveToIdle_IT(&huart2, data, sizeof(data));
+    commandWrite(rxChunk, Size);
+    HAL_UARTEx_ReceiveToIdle_IT(&huart2, rxChunk, sizeof(rxChunk));
   }
 }
 /* USER CODE END 0 */
@@ -98,7 +98,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UARTEx_ReceiveToIdle_IT(&huart2, data, sizeof(data));
+  HAL_UARTEx_ReceiveToIdle_IT(&huart2, rxChunk, sizeof(rxChunk));
   uint8_t command[50];
   uint8_t command_lenth=0;
   /* USER CODE END 2 */

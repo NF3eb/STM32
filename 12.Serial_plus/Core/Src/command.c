@@ -4,25 +4,25 @@
 #define COMMAND_MIN_LENGTH 4
 #define BUFFER_SIZE 128
 
-uint8_t readIndex=0,writeIndex=0;
-uint8_t buffer[BUFFER_SIZE]={0};
+static volatile uint8_t readIndex=0,writeIndex=0;
+static volatile uint8_t buffer[BUFFER_SIZE]={0};
 
-static void addReadIndex(uint8_t length){
+static void addReadIndex(uint8_t length){//使readIndex的值增加i，若最终值大于BUFFER_SIZE则取溢出值
     readIndex=(readIndex+length)%BUFFER_SIZE;
 }
-static uint8_t readBuffer(uint8_t i){
+static uint8_t readBuffer(uint8_t i){//获得buffer[i]的值，若i大于BUFFER_SIZE则会取溢出值
     return buffer[i%BUFFER_SIZE];
 }
-static uint8_t bufferGetLength(){
+static uint8_t bufferGetLength(){//获得buffer中有多少个元素
     return (writeIndex-readIndex+BUFFER_SIZE)%BUFFER_SIZE;
 }
-static void appendArray(uint8_t *baseArray,uint8_t *appendArray,uint8_t appendPoint,uint8_t appendLength){
+static void appendArray(uint8_t *baseArray,uint8_t *appendArray,uint8_t appendPoint,uint8_t appendLength){//将appendArray[0]-appendArray[appendLength]复制到baseArray[appendPoint]之后
     for(uint8_t i=0;i<appendLength;i++){
         baseArray[appendPoint+i]=appendArray[i];
     }
     return;
 }
-static uint8_t checkDataPack(){
+static uint8_t checkDataPack(){//检测是否是一个有效的数据包：返回1则表示不是一个有效的数据包，返回2则表示数据包尚未接收完毕
     if(readBuffer(readIndex)!=0xAA){
         return 1;
     }
